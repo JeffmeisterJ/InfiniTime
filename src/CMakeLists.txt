@@ -457,6 +457,7 @@ list(APPEND SOURCE_FILES
         components/ble/MusicService.cpp
         components/ble/SimpleWeatherService.cpp
         components/ble/NavigationService.cpp
+        components/ble/HomeAssistantService.cpp
         components/ble/BatteryInformationService.cpp
         components/ble/FSService.cpp
         components/ble/ImmediateAlertService.cpp
@@ -530,6 +531,7 @@ list(APPEND RECOVERY_SOURCE_FILES
         components/ble/ImmediateAlertService.cpp
         components/ble/ServiceDiscovery.cpp
         components/ble/NavigationService.cpp
+        components/ble/HomeAssistantService.cpp
         components/ble/HeartRateService.cpp
         components/ble/MotionService.cpp
         components/firmwarevalidator/FirmwareValidator.cpp
@@ -652,6 +654,7 @@ set(INCLUDE_FILES
         components/ble/HeartRateService.h
         components/ble/MotionService.h
         components/ble/SimpleWeatherService.h
+        components/ble/HomeAssistantService.h
         components/settings/Settings.h
         components/timer/Timer.h
         components/alarm/AlarmController.h

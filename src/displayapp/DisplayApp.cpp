@@ -703,6 +703,10 @@ void DisplayApp::Register(Pinetime::Controllers::NavigationService* NavigationSe
   this->controllers.navigationService = NavigationService;
 }
 
+void DisplayApp::Register(Pinetime::Controllers::HomeAssistantService* homeAssistantService) {
+  this->controllers.homeAssistantService = homeAssistantService;
+}
+
 void DisplayApp::ApplyBrightness() {
   auto brightness = settingsController.GetBrightness();
   if (brightness != Controllers::BrightnessController::Levels::Low && brightness != Controllers::BrightnessController::Levels::Medium &&
