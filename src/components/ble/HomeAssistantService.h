@@ -40,18 +40,21 @@ namespace Pinetime {
 
       void event(char event);
 
-      bool getStatus() const;
-      void setStatus(bool state);
+      bool getEntityState(uint8_t entityNum) const;
+      void setEntityState(uint8_t entityNum, bool state);
 
     private:
-      struct ble_gatt_chr_def characteristicDefinition[3];
+      struct ble_gatt_chr_def characteristicDefinition[6];
       struct ble_gatt_svc_def serviceDefinition[2];
 
       uint16_t eventHandle {};
 
       NimbleController& nimble;
       
-      bool status = true;
+      bool entityOneState = false;
+      bool entityTwoState = false;
+      bool entityThreeState = false;
+      bool entityFourState = false;
 
     };
   }

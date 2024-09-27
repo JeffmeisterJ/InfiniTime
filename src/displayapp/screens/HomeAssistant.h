@@ -19,6 +19,8 @@ namespace Pinetime {
         ~HomeAssistant() override;
 
         void OnObjectEvent(lv_obj_t* obj, lv_event_t event);
+
+        void Refresh() override;
       
       private:
         lv_obj_t* SwtStatus1;
@@ -34,6 +36,8 @@ namespace Pinetime {
         lv_obj_t* LblStatus4;
 
         Pinetime::Controllers::HomeAssistantService& homeAssistantService;
+
+        lv_task_t* taskRefresh;
 
       };
     }

@@ -52,7 +52,7 @@ HomeAssistant::HomeAssistant(Pinetime::Controllers::HomeAssistantService& home) 
   lv_obj_align(LblStatus4, SwtStatus4, LV_ALIGN_OUT_RIGHT_MID, 25, 0); 
   lv_obj_set_event_cb(SwtStatus4, event_handler);
 
-  
+  taskRefresh = lv_task_create(RefreshTaskCallback, 100, LV_TASK_PRIO_MID, this);
 }
 
 HomeAssistant::~HomeAssistant() {
@@ -63,8 +63,35 @@ void HomeAssistant::OnObjectEvent(lv_obj_t* obj, lv_event_t event) {
   if (event == LV_EVENT_CLICKED) {
     if (obj == SwtStatus1) {
       lv_label_set_text_fmt(LblStatus1, "Status: %d", lv_switch_get_state(SwtStatus1));
-      homeAssistantService.setStatus(lv_switch_get_state(SwtStatus1));
+      homeAssistantService.setEntityState(1, lv_switch_get_state(SwtStatus1));
+      // homeAssistantService.event((char)lv_switch_get_state(swtStatus));
+    } else if (obj == SwtStatus2) {
+      lv_label_set_text_fmt(LblStatus2, "Status: %d", lv_switch_get_state(SwtStatus2));
+      homeAssistantService.setEntityState(2, lv_switch_get_state(SwtStatus2));
+      // homeAssistantService.event((char)lv_switch_get_state(swtStatus));
+    } else if (obj == SwtStatus3) {
+      lv_label_set_text_fmt(LblStatus3, "Status: %d", lv_switch_get_state(SwtStatus3));
+      homeAssistantService.setEntityState(3, lv_switch_get_state(SwtStatus3));
+      // homeAssistantService.event((char)lv_switch_get_state(swtStatus));
+    } else if (obj == SwtStatus4) {
+      lv_label_set_text_fmt(LblStatus4, "Status: %d", lv_switch_get_state(SwtStatus4));
+      homeAssistantService.setEntityState(4, lv_switch_get_state(SwtStatus4));
       // homeAssistantService.event((char)lv_switch_get_state(swtStatus));
     }
   }
+}
+
+void HomeAssistant::Refresh() {
+  if (lv_switch_get_state(SwtStatus1) != homeAssistantService.getEntityState(1)) lv_switch_toggle(SwtStatus1, LV_ANIM_ON);
+  lv_label_set_text_fmt(LblStatus1, "Status: %d", lv_switch_get_state(SwtStatus1));
+
+  if (lv_switch_get_state(SwtStatus2) != homeAssistantService.getEntityState(2)) lv_switch_toggle(SwtStatus2, LV_ANIM_ON);
+  lv_label_set_text_fmt(LblStatus2, "Status: %d", lv_switch_get_state(SwtStatus2));
+
+  if (lv_switch_get_state(SwtStatus3) != homeAssistantService.getEntityState(3)) lv_switch_toggle(SwtStatus3, LV_ANIM_ON);
+  lv_label_set_text_fmt(LblStatus3, "Status: %d", lv_switch_get_state(SwtStatus3));
+
+  if (lv_switch_get_state(SwtStatus4) != homeAssistantService.getEntityState(4)) lv_switch_toggle(SwtStatus4, LV_ANIM_ON);
+  lv_label_set_text_fmt(LblStatus4, "Status: %d", lv_switch_get_state(SwtStatus4));
+    
 }

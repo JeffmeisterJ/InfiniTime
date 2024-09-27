@@ -31,10 +31,13 @@ namespace {
     return CharUuid(0x00, 0x00);
   }
 
-  constexpr ble_uuid128_t msUuid {BaseUuid()};
+  constexpr ble_uuid128_t haUuid {BaseUuid()};
 
-  constexpr ble_uuid128_t msEventCharUuid {CharUuid(0x01, 0x00)};
-  constexpr ble_uuid128_t msStatusCharUuid {CharUuid(0x02, 0x00)};
+  constexpr ble_uuid128_t haEventCharUuid {CharUuid(0x01, 0x00)};
+  constexpr ble_uuid128_t haEntityOneState {CharUuid(0x02, 0x00)};
+  constexpr ble_uuid128_t haEntityTwoState {CharUuid(0x03, 0x00)};
+  constexpr ble_uuid128_t haEntityThreeState {CharUuid(0x04, 0x00)};
+  constexpr ble_uuid128_t haEntityFourState {CharUuid(0x05, 0x00)};
   
 
   constexpr uint8_t MaxStringSize {40};
@@ -45,18 +48,30 @@ namespace {
 }
 
 Pinetime::Controllers::HomeAssistantService::HomeAssistantService(Pinetime::Controllers::NimbleController& nimble) : nimble(nimble) {
-  characteristicDefinition[0] = {.uuid = &msEventCharUuid.u,
+  characteristicDefinition[0] = {.uuid = &haEventCharUuid.u,
                                  .access_cb = HomeAssistantCallback,
                                  .arg = this,
                                  .flags = BLE_GATT_CHR_F_NOTIFY,
                                  .val_handle = &eventHandle};
-  characteristicDefinition[1] = {.uuid = &msStatusCharUuid.u,
+  characteristicDefinition[1] = {.uuid = &haEntityOneState.u,
                                  .access_cb = HomeAssistantCallback,
                                  .arg = this,
                                  .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
-  characteristicDefinition[2] = {0};
+  characteristicDefinition[2] = {.uuid = &haEntityTwoState.u, 
+                                 .access_cb = HomeAssistantCallback,
+                                 .arg = this,
+                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
+  characteristicDefinition[3] = {.uuid = &haEntityThreeState.u,
+                                 .access_cb = HomeAssistantCallback,
+                                 .arg = this,
+                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
+  characteristicDefinition[4] = {.uuid = &haEntityFourState.u,
+                                 .access_cb = HomeAssistantCallback,
+                                 .arg = this,
+                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};                                 
+  characteristicDefinition[5] = {0};
 
-  serviceDefinition[0] = {.type = BLE_GATT_SVC_TYPE_PRIMARY, .uuid = &msUuid.u, .characteristics = characteristicDefinition};
+  serviceDefinition[0] = {.type = BLE_GATT_SVC_TYPE_PRIMARY, .uuid = &haUuid.u, .characteristics = characteristicDefinition};
   serviceDefinition[1] = {0};
 }
 
@@ -70,6 +85,7 @@ void Pinetime::Controllers::HomeAssistantService::Init() {
 }
 
 int Pinetime::Controllers::HomeAssistantService::OnCommand(struct ble_gatt_access_ctxt* ctxt) {
+  bool entState;
   if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
     size_t notifSize = OS_MBUF_PKTLEN(ctxt->om);
     size_t bufferSize = notifSize;
@@ -88,22 +104,71 @@ int Pinetime::Controllers::HomeAssistantService::OnCommand(struct ble_gatt_acces
     data[bufferSize] = '\0';
 
     char* s = &data[0];
-    if (ble_uuid_cmp(ctxt->chr->uuid, &msStatusCharUuid.u) == 0) {
-      status = s[0];
+    
+    if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityOneState.u) == 0) {
+      entityOneState = s[0];
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityTwoState.u) == 0) {
+      entityTwoState = s[0];
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityThreeState.u) == 0) {
+      entityThreeState = s[0];
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityFourState.u) == 0) {
+      entityFourState = s[0];
     }
+
   } else if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR) {
-    int res = os_mbuf_append(ctxt->om, &status, sizeof(status));
+    
+    if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityOneState.u) == 0) {
+      entState = entityOneState;
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityTwoState.u) == 0) {
+      entState = entityTwoState;
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityThreeState.u) == 0) {
+      entState = entityThreeState;
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityFourState.u) == 0) {
+      entState = entityFourState;
+    }
+    
+    int res = os_mbuf_append(ctxt->om, &entState, sizeof(bool));
     return (res == 0) ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
   }
   return 0;
 }
 
-bool Pinetime::Controllers::HomeAssistantService::getStatus() const {
-  return status;
+bool Pinetime::Controllers::HomeAssistantService::getEntityState(uint8_t entityNum) const {
+  switch (entityNum)
+  {
+  case 1:
+    return entityOneState;
+  case 2:
+    return entityTwoState;
+  case 3:
+    return entityThreeState;
+  case 4:
+    return entityFourState;
+
+  default:
+    return false;
+  }
 }
 
-void Pinetime::Controllers::HomeAssistantService::setStatus(bool state) {
-  status = state;
+void Pinetime::Controllers::HomeAssistantService::setEntityState(uint8_t entityNum, bool state) {
+  switch (entityNum)
+  {
+  case 1:
+    entityOneState = state;
+    break;
+  case 2:
+    entityTwoState = state;
+    break;
+  case 3:
+    entityThreeState = state;
+    break;
+  case 4:
+    entityFourState = state;
+    break;
+
+  default:
+    break;
+  }
 }
 
 void Pinetime::Controllers::HomeAssistantService::event(char event) {
