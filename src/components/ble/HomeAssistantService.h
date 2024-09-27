@@ -28,6 +28,29 @@
 
 namespace Pinetime {
   namespace Controllers {
+
+    enum class HAEventType : uint8_t {
+      HA_REQ_REFRESH,
+      HA_ENTITY_CHANGED,
+    };
+
+    enum class HAEntityType : uint8_t {
+      HA_TYPE_NONE,
+      HA_TYPE_SWITCH,
+      HA_TYPE_LAMP,
+      HA_TYPE_LAMP_RGB,
+    };
+    
+    struct HAEntity {
+      HAEntityType type = HAEntityType::HA_TYPE_NONE;
+      std::string name = std::string("---");
+      bool state = false;
+      uint8_t brightness = 0;
+      uint8_t hue = 0;
+      uint8_t saturation = 0;
+      uint8_t value = 0;
+    };
+
     class NimbleController;
 
     class HomeAssistantService {
@@ -40,21 +63,23 @@ namespace Pinetime {
 
       void event(char event);
 
-      bool getEntityState(uint8_t entityNum) const;
-      void setEntityState(uint8_t entityNum, bool state);
+      HAEntity* getEntityState(uint8_t entityNum) const;
+      int8_t setEntityState(uint8_t entityNum, HAEntity* entity);
+      std::string getRoomName();
 
     private:
-      struct ble_gatt_chr_def characteristicDefinition[6];
+      struct ble_gatt_chr_def characteristicDefinition[12];
       struct ble_gatt_svc_def serviceDefinition[2];
 
       uint16_t eventHandle {};
 
       NimbleController& nimble;
+      std::string roomName = std::string("Home Assistant");
+      uint8_t entityId = 0;
+      uint8_t roomId = 0;
       
-      bool entityOneState = false;
-      bool entityTwoState = false;
-      bool entityThreeState = false;
-      bool entityFourState = false;
+      
+      HAEntity entities[4]; 
 
     };
   }

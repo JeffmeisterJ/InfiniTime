@@ -34,13 +34,18 @@ namespace {
   constexpr ble_uuid128_t haUuid {BaseUuid()};
 
   constexpr ble_uuid128_t haEventCharUuid {CharUuid(0x01, 0x00)};
-  constexpr ble_uuid128_t haEntityOneState {CharUuid(0x02, 0x00)};
-  constexpr ble_uuid128_t haEntityTwoState {CharUuid(0x03, 0x00)};
-  constexpr ble_uuid128_t haEntityThreeState {CharUuid(0x04, 0x00)};
-  constexpr ble_uuid128_t haEntityFourState {CharUuid(0x05, 0x00)};
-  
+  constexpr ble_uuid128_t haEntityId {CharUuid(0x02, 0x00)};
+  constexpr ble_uuid128_t haEntityType {CharUuid(0x03, 0x00)};
+  constexpr ble_uuid128_t haEntityName {CharUuid(0x04, 0x00)};
+  constexpr ble_uuid128_t haEntityState {CharUuid(0x05, 0x00)};
+  constexpr ble_uuid128_t haEntityBrightness {CharUuid(0x06, 0x00)};
+  constexpr ble_uuid128_t haEntityHue {CharUuid(0x07, 0x00)};
+  constexpr ble_uuid128_t haEntitySaturation {CharUuid(0x08, 0x00)};
+  constexpr ble_uuid128_t haEntityValue {CharUuid(0x09, 0x00)};
+  constexpr ble_uuid128_t haRoomName {CharUuid(0x0a, 0x00)};
+  constexpr ble_uuid128_t haRoomId {CharUuid(0x0b, 0x00)};
 
-  constexpr uint8_t MaxStringSize {40};
+  constexpr uint8_t MaxStringSize {16};
 
   int HomeAssistantCallback(uint16_t /*conn_handle*/, uint16_t /*attr_handle*/, struct ble_gatt_access_ctxt* ctxt, void* arg) {
     return static_cast<Pinetime::Controllers::HomeAssistantService*>(arg)->OnCommand(ctxt);
@@ -53,23 +58,47 @@ Pinetime::Controllers::HomeAssistantService::HomeAssistantService(Pinetime::Cont
                                  .arg = this,
                                  .flags = BLE_GATT_CHR_F_NOTIFY,
                                  .val_handle = &eventHandle};
-  characteristicDefinition[1] = {.uuid = &haEntityOneState.u,
+  characteristicDefinition[1] = {.uuid = &haEntityId.u,
                                  .access_cb = HomeAssistantCallback,
                                  .arg = this,
                                  .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
-  characteristicDefinition[2] = {.uuid = &haEntityTwoState.u, 
+  characteristicDefinition[2] = {.uuid = &haEntityType.u, 
                                  .access_cb = HomeAssistantCallback,
                                  .arg = this,
                                  .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
-  characteristicDefinition[3] = {.uuid = &haEntityThreeState.u,
+  characteristicDefinition[3] = {.uuid = &haEntityName.u,
                                  .access_cb = HomeAssistantCallback,
                                  .arg = this,
                                  .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
-  characteristicDefinition[4] = {.uuid = &haEntityFourState.u,
+  characteristicDefinition[4] = {.uuid = &haEntityState.u,
                                  .access_cb = HomeAssistantCallback,
                                  .arg = this,
-                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};                                 
-  characteristicDefinition[5] = {0};
+                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
+  characteristicDefinition[5] = {.uuid = &haEntityBrightness.u,
+                                 .access_cb = HomeAssistantCallback,
+                                 .arg = this,
+                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
+  characteristicDefinition[6] = {.uuid = &haEntityHue.u,
+                                 .access_cb = HomeAssistantCallback,
+                                 .arg = this,
+                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
+  characteristicDefinition[7] = {.uuid = &haEntitySaturation.u,
+                                 .access_cb = HomeAssistantCallback,
+                                 .arg = this,
+                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
+  characteristicDefinition[8] = {.uuid = &haEntityValue.u,
+                                 .access_cb = HomeAssistantCallback,
+                                 .arg = this,
+                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
+  characteristicDefinition[9] = {.uuid = &haRoomName.u,
+                                 .access_cb = HomeAssistantCallback,
+                                 .arg = this,
+                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
+  characteristicDefinition[9] = {.uuid = &haRoomId.u,
+                                 .access_cb = HomeAssistantCallback,
+                                 .arg = this,
+                                 .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ};
+  characteristicDefinition[11] = {0};
 
   serviceDefinition[0] = {.type = BLE_GATT_SVC_TYPE_PRIMARY, .uuid = &haUuid.u, .characteristics = characteristicDefinition};
   serviceDefinition[1] = {0};
@@ -82,10 +111,12 @@ void Pinetime::Controllers::HomeAssistantService::Init() {
 
   res = ble_gatts_add_svcs(serviceDefinition);
   ASSERT(res == 0);
+
 }
 
 int Pinetime::Controllers::HomeAssistantService::OnCommand(struct ble_gatt_access_ctxt* ctxt) {
-  bool entState;
+  char entState[17];
+  uint8_t entSize = 0;
   if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
     size_t notifSize = OS_MBUF_PKTLEN(ctxt->om);
     size_t bufferSize = notifSize;
@@ -94,81 +125,90 @@ int Pinetime::Controllers::HomeAssistantService::OnCommand(struct ble_gatt_acces
     }
 
     char data[bufferSize + 1];
+    memset(data, 0, bufferSize);
     os_mbuf_copydata(ctxt->om, 0, bufferSize, data);
 
-    if (notifSize > bufferSize) {
-      data[bufferSize - 1] = '.';
-      data[bufferSize - 2] = '.';
-      data[bufferSize - 3] = '.';
-    }
     data[bufferSize] = '\0';
 
     char* s = &data[0];
     
-    if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityOneState.u) == 0) {
-      entityOneState = s[0];
-    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityTwoState.u) == 0) {
-      entityTwoState = s[0];
-    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityThreeState.u) == 0) {
-      entityThreeState = s[0];
-    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityFourState.u) == 0) {
-      entityFourState = s[0];
+    if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityId.u) == 0) {
+      entityId = (uint8_t)s[0];
+      // If non-existent entity ID, select lowest one and return error
+      if (entityId > sizeof(entities)) {
+        entityId = 0;
+        return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+      }
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityType.u) == 0) {
+      entities[entityId].type = static_cast<HAEntityType>((uint8_t)s[0]);
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityName.u) == 0) {
+      entities[entityId].name = std::string(s);
+      if (entities[entityId].name.size() > 9) entities[entityId].name.resize(9);
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityState.u) == 0) {
+      entities[entityId].state = (bool)s[0];
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityBrightness.u) == 0) {
+      entities[entityId].brightness = (uint8_t)s[0];
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntitySaturation.u) == 0) {
+      entities[entityId].saturation = (uint8_t)s[0];
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityValue.u) == 0) {
+      entities[entityId].value = (uint8_t)s[0];
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haRoomName.u) == 0) {
+      roomName = std::string(s);
+      if (roomName.size() > 16) roomName.resize(16);
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haRoomId.u) == 0) {
+      roomId = (uint8_t)s[0];
     }
 
   } else if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR) {
     
-    if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityOneState.u) == 0) {
-      entState = entityOneState;
-    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityTwoState.u) == 0) {
-      entState = entityTwoState;
-    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityThreeState.u) == 0) {
-      entState = entityThreeState;
-    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityFourState.u) == 0) {
-      entState = entityFourState;
+    if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityId.u) == 0) {
+      entState[0] = entityId;
+      entSize = 1;
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityType.u) == 0) {
+      entState[0] = (uint8_t)entities[entityId].type;
+      entSize = 1;
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityName.u) == 0) {
+      strncpy(entState, entities[entityId].name.data(), entities[entityId].name.size());
+      entSize = entities[entityId].name.size();
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityState.u) == 0) {
+      entState[0] = entities[entityId].state;
+      entSize = 1;
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityBrightness.u) == 0) {
+      entState[0] = entities[entityId].brightness;
+      entSize = 1;
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntitySaturation.u) == 0) {
+      entState[0] = entities[entityId].saturation;
+      entSize = 1;
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityValue.u) == 0) {
+      entState[0] = entities[entityId].value;
+      entSize = 1;
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haRoomName.u) == 0) {
+      strncpy(entState, roomName.data(), 16);
+      entSize = strlen(entState);
+    } else if (ble_uuid_cmp(ctxt->chr->uuid, &haEntityId.u) == 0) {
+      entState[0] = roomId;
+      entSize = 1;
     }
     
-    int res = os_mbuf_append(ctxt->om, &entState, sizeof(bool));
+    int res = os_mbuf_append(ctxt->om, &entState, entSize);
     return (res == 0) ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
   }
   return 0;
 }
 
-bool Pinetime::Controllers::HomeAssistantService::getEntityState(uint8_t entityNum) const {
-  switch (entityNum)
-  {
-  case 1:
-    return entityOneState;
-  case 2:
-    return entityTwoState;
-  case 3:
-    return entityThreeState;
-  case 4:
-    return entityFourState;
-
-  default:
-    return false;
-  }
+Pinetime::Controllers::HAEntity* Pinetime::Controllers::HomeAssistantService::getEntityState(uint8_t entityNum) const {
+  if (entityNum > (sizeof(entities)-1)) return (HAEntity *)-1;
+  return (HAEntity *)&entities[entityNum];
 }
 
-void Pinetime::Controllers::HomeAssistantService::setEntityState(uint8_t entityNum, bool state) {
-  switch (entityNum)
-  {
-  case 1:
-    entityOneState = state;
-    break;
-  case 2:
-    entityTwoState = state;
-    break;
-  case 3:
-    entityThreeState = state;
-    break;
-  case 4:
-    entityFourState = state;
-    break;
+int8_t Pinetime::Controllers::HomeAssistantService::setEntityState(uint8_t entityNum, HAEntity* entity) {
+  if (entityNum > (sizeof(entities)-1)) return -1;
+  entities[entityNum] = *entity;
+  return 0;
+}
 
-  default:
-    break;
-  }
+std::string Pinetime::Controllers::HomeAssistantService::getRoomName() {
+  return roomName;
 }
 
 void Pinetime::Controllers::HomeAssistantService::event(char event) {

@@ -11,87 +11,55 @@ static void event_handler(lv_obj_t* obj, lv_event_t event) {
 }
 
 HomeAssistant::HomeAssistant(Pinetime::Controllers::HomeAssistantService& home) : homeAssistantService(home) {
-  lv_obj_t* title = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_text_static(title, "Home Assistant");
-  lv_obj_align(title, lv_scr_act(), LV_ALIGN_IN_TOP_MID, 0, 0);
-  lv_label_set_align(title, LV_LABEL_ALIGN_CENTER);
+  lblRoomName = lv_label_create(lv_scr_act(), nullptr);
+  lv_label_set_text_static(lblRoomName, "---");
+  lv_obj_align(lblRoomName, lv_scr_act(), LV_ALIGN_IN_TOP_MID, 0, 0);
+  lv_label_set_align(lblRoomName, LV_LABEL_ALIGN_CENTER);
   
-  SwtStatus1 = lv_switch_create(lv_scr_act(), nullptr);
-  SwtStatus1->user_data = this;
-  lv_obj_set_size(SwtStatus1, 80, 40);
-  lv_obj_align(SwtStatus1, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 5, 35);
-  LblStatus1 = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_text_static(LblStatus1, "---");
-  lv_obj_align(LblStatus1, SwtStatus1, LV_ALIGN_OUT_RIGHT_MID, 25, 0); 
-  lv_obj_set_event_cb(SwtStatus1, event_handler);
-
-  SwtStatus2 = lv_switch_create(lv_scr_act(), nullptr);
-  SwtStatus2->user_data = this;
-  lv_obj_set_size(SwtStatus2, 80, 40);
-  lv_obj_align(SwtStatus2, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 5, 85);
-  LblStatus2 = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_text_fmt(LblStatus2, "---");
-  lv_obj_align(LblStatus2, SwtStatus2, LV_ALIGN_OUT_RIGHT_MID, 25, 0); 
-  lv_obj_set_event_cb(SwtStatus2, event_handler);
-
-  SwtStatus3 = lv_switch_create(lv_scr_act(), nullptr);
-  SwtStatus3->user_data = this;
-  lv_obj_set_size(SwtStatus3, 80, 40);
-  lv_obj_align(SwtStatus3, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 5, 135);
-  LblStatus3 = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_text_fmt(LblStatus3, "---");
-  lv_obj_align(LblStatus3, SwtStatus3, LV_ALIGN_OUT_RIGHT_MID, 25, 0); 
-  lv_obj_set_event_cb(SwtStatus3, event_handler);
-
-  SwtStatus4 = lv_switch_create(lv_scr_act(), nullptr);
-  SwtStatus4->user_data = this;
-  lv_obj_set_size(SwtStatus4, 80, 40);
-  lv_obj_align(SwtStatus4, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 5, 185);
-  LblStatus4 = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_text_fmt(LblStatus4, "---");
-  lv_obj_align(LblStatus4, SwtStatus4, LV_ALIGN_OUT_RIGHT_MID, 25, 0); 
-  lv_obj_set_event_cb(SwtStatus4, event_handler);
-
+  for (uint8_t idx=0;idx<4;idx++) {
+    entitySwitches[idx] = lv_switch_create(lv_scr_act(), nullptr);
+    entitySwitches[idx]->user_data = this;
+    lv_obj_set_size(entitySwitches[idx], 80, 40);
+    lv_obj_align(entitySwitches[idx], lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 5, (idx*50)+35);
+    entityLabels[idx] = lv_label_create(lv_scr_act(), nullptr);
+    lv_label_set_text_static(entityLabels[idx], "---");
+    lv_obj_align(entityLabels[idx], entitySwitches[idx], LV_ALIGN_OUT_RIGHT_MID, 25, 0); 
+    lv_obj_set_event_cb(entitySwitches[idx], event_handler);  
+  }
   taskRefresh = lv_task_create(RefreshTaskCallback, 100, LV_TASK_PRIO_MID, this);
+  homeAssistantService.event((uint8_t)Pinetime::Controllers::HAEventType::HA_REQ_REFRESH);
 }
 
 HomeAssistant::~HomeAssistant() {
+  lv_task_del(taskRefresh);
   lv_obj_clean(lv_scr_act());
 }
 
 void HomeAssistant::OnObjectEvent(lv_obj_t* obj, lv_event_t event) {
+  Pinetime::Controllers::HAEntity entity;
   if (event == LV_EVENT_CLICKED) {
-    if (obj == SwtStatus1) {
-      lv_label_set_text_fmt(LblStatus1, "Status: %d", lv_switch_get_state(SwtStatus1));
-      homeAssistantService.setEntityState(1, lv_switch_get_state(SwtStatus1));
-      // homeAssistantService.event((char)lv_switch_get_state(swtStatus));
-    } else if (obj == SwtStatus2) {
-      lv_label_set_text_fmt(LblStatus2, "Status: %d", lv_switch_get_state(SwtStatus2));
-      homeAssistantService.setEntityState(2, lv_switch_get_state(SwtStatus2));
-      // homeAssistantService.event((char)lv_switch_get_state(swtStatus));
-    } else if (obj == SwtStatus3) {
-      lv_label_set_text_fmt(LblStatus3, "Status: %d", lv_switch_get_state(SwtStatus3));
-      homeAssistantService.setEntityState(3, lv_switch_get_state(SwtStatus3));
-      // homeAssistantService.event((char)lv_switch_get_state(swtStatus));
-    } else if (obj == SwtStatus4) {
-      lv_label_set_text_fmt(LblStatus4, "Status: %d", lv_switch_get_state(SwtStatus4));
-      homeAssistantService.setEntityState(4, lv_switch_get_state(SwtStatus4));
-      // homeAssistantService.event((char)lv_switch_get_state(swtStatus));
+    for (uint8_t idx=0;idx<sizeof(entitySwitches);idx++) {
+      if (obj == entitySwitches[idx]) {
+        entity = *homeAssistantService.getEntityState(idx);
+        entity.state = (bool)lv_switch_get_state(entitySwitches[idx]);
+        //TODO check if set state succesful 
+        homeAssistantService.setEntityState(idx, &entity);  
+        homeAssistantService.event((((uint8_t)Pinetime::Controllers::HAEventType::HA_ENTITY_CHANGED)<<4)|(idx & 0xF));
+      }  
     }
   }
 }
 
 void HomeAssistant::Refresh() {
-  if (lv_switch_get_state(SwtStatus1) != homeAssistantService.getEntityState(1)) lv_switch_toggle(SwtStatus1, LV_ANIM_ON);
-  lv_label_set_text_fmt(LblStatus1, "Status: %d", lv_switch_get_state(SwtStatus1));
+  Pinetime::Controllers::HAEntity entity;
 
-  if (lv_switch_get_state(SwtStatus2) != homeAssistantService.getEntityState(2)) lv_switch_toggle(SwtStatus2, LV_ANIM_ON);
-  lv_label_set_text_fmt(LblStatus2, "Status: %d", lv_switch_get_state(SwtStatus2));
+  lv_label_set_text(lblRoomName, homeAssistantService.getRoomName().data());
+  lv_obj_align(lblRoomName, lv_scr_act(), LV_ALIGN_IN_TOP_MID, 0, 0); // Make sure title text is centered
 
-  if (lv_switch_get_state(SwtStatus3) != homeAssistantService.getEntityState(3)) lv_switch_toggle(SwtStatus3, LV_ANIM_ON);
-  lv_label_set_text_fmt(LblStatus3, "Status: %d", lv_switch_get_state(SwtStatus3));
-
-  if (lv_switch_get_state(SwtStatus4) != homeAssistantService.getEntityState(4)) lv_switch_toggle(SwtStatus4, LV_ANIM_ON);
-  lv_label_set_text_fmt(LblStatus4, "Status: %d", lv_switch_get_state(SwtStatus4));
-    
+  for (uint8_t idx=0;idx<sizeof(entitySwitches);idx++) {
+    //TODO check if getEntityState returns a valid pointer
+    entity = *homeAssistantService.getEntityState(idx);
+    if (lv_switch_get_state(entitySwitches[idx]) != entity.state) lv_switch_toggle(entitySwitches[idx], LV_ANIM_ON);
+    lv_label_set_text(entityLabels[idx], entity.name.data());
+  } 
 }

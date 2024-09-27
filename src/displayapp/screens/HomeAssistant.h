@@ -23,22 +23,14 @@ namespace Pinetime {
         void Refresh() override;
       
       private:
-        lv_obj_t* SwtStatus1;
-        lv_obj_t* LblStatus1;
+        lv_obj_t* lblRoomName;
 
-        lv_obj_t* SwtStatus2;
-        lv_obj_t* LblStatus2;
-
-        lv_obj_t* SwtStatus3;
-        lv_obj_t* LblStatus3;
-
-        lv_obj_t* SwtStatus4;
-        lv_obj_t* LblStatus4;
+        lv_obj_t** entitySwitches = new lv_obj_t*[4];
+        lv_obj_t** entityLabels = new lv_obj_t*[4];
 
         Pinetime::Controllers::HomeAssistantService& homeAssistantService;
 
         lv_task_t* taskRefresh;
-
       };
     }
     
